@@ -431,3 +431,151 @@ const Post = ( { post }: { post: PostType } ) => {
     )
 }
 ```
+
+## Principio de Inversión de Dependencias
+
+Este principio afirma que uno debería depender de abstracciones y no de implementaciones concretas. Por ejemplo, en el siguiente código tenemos un componente que se encarga de hacer una consulta a una url en especifico, pero se debe acompañar de una función asíncrona que se encarga de hacer el fetch y retornar la respuesta. Aquí estamos haciendo una implementación concreta puesto que pasamos una URL "quemada".
+
+```tsx
+import useSWR from 'swr'
+
+
+const fetcher = async ( url: string ) => {
+    const res = await fetch( url )
+    return res.json()
+}
+
+
+const Todo = () => {
+    const { data } = useSWR( 'https://jsonplaceholder.typicode.com/todos', fetcher )
+
+    if ( !data ) return <p>Loading...</p>
+
+    return (
+        <ul>
+            {
+                data.map( ( todo: any ) => {
+                    return (
+                        <li>
+                            <span>{ todo.id }</span>
+                            <span>{ todo.title }</span>
+                        </li>
+                    )
+                } )
+            }
+        </ul>
+    )
+}
+
+
+export default Todo
+```
+
+Lo primero que haremos para aplicar el principio, puede ser crear un custom hook en que se determinen mediante interfaces con objetos genéricos, lo que debe ingresar al hook, y lo que debe retornar el mismo:
+
+```tsx
+import useSWR from 'swr'
+
+
+interface UseData<T> {
+    key: string
+    fetcher: () => Promise<T>
+}
+
+
+interface Response<T> {
+    data: T | undefined
+    error: string | undefined
+    isValidating: boolean
+}
+
+
+export const useData = <T> ( { key, fetcher }: UseData<T> ): Response<T> => {
+    const { data, error, isValidating } = useSWR<T, string>( key, fetcher )
+    return { data, error, isValidating }
+}
+```
+
+Ahora, podemos crear un tipo que servirá para determinar de que se conformará el objeto genérico.
+
+```ts
+type ResponseType = {
+    id: string
+    title: string
+}
+```
+
+En nuestro componente principal, usamos el hook que se encargará de traer la data, del lugar que nosotros queramos, puede ser una url, un mock, del localStorage, de un json, etc. Sin distinción, mientras retornen el tipo de data establecido, podrá ser usado por nuestro hook:
+
+```tsx
+import { useData } from './hooks/useData'
+import { ResponseType } from './types'
+import { fetcher } from './util/fetcher'
+
+
+const Todo = () => {
+    const { data } = useData<ResponseType[]>( { key: '/todos', fetcher } )
+
+    if ( !data ) return <p>Loading...</p>
+
+    return (
+        <ul>
+            {
+                data.map( ( todo: any ) => {
+                    return (
+                        <li>
+                            <span>{ todo.id }</span>
+                            <span>{ todo.title }</span>
+                        </li>
+                    )
+                } )
+            }
+        </ul>
+    )
+}
+
+
+export default Todo
+```
+
+Por ejemplo, podemos usar cualquiera de los siguientes fetcher (los cuales incluso podrían ser enviados mediante props del componente, o ser extraídos de un contexto global).
+
+```tsx
+export const fetcherURL = async (): Promise<ResponseType[]> => {
+    const url = 'https://jsonplaceholder.typicode.com/todos'
+    const res = await fetch( url )
+    return res.json()
+}
+```
+
+```tsx
+export const fetcherLocalStorage = async (): Promise<ResponseType[]> => {
+    const todos = localStorage.getItem('todos')
+    return todos ? JSON.parse(todos) : []
+}
+```
+
+```tsx
+export const fetcherMock = async (): Promise<ResponseType[]> => {
+    return [
+        { id: 1, title: 'Prueba' },
+        { id: 2, title: 'Test' },
+    ]
+}
+```
+
+En este caso, podemos hacer la modificación únicamente desde la importación del fetcher en el componente en que se hará la consulta:
+
+```tsx
+import { fetcherURL as fetcher } from './util/fetcher'
+```
+
+```tsx
+import { fetcherLocalStorage as fetcher } from './util/fetcher'
+```
+
+```tsx
+import { fetcherMock as fetcher } from './util/fetcher'
+```
+
+La inyección de dependencias que hemos realizado, es verdaderamente potente puesto que podemos ocultar la lógica detrás de la consulta, y abstraemos lo suficiente para solo tener que cambiar pequeñas partes de nuestro código mientras se cumpla el contrato que establecemos (ejemplo el tipo de retorno).
