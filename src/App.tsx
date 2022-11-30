@@ -5,7 +5,10 @@
 // import { BadImplementation } from './LiskovSubstitutionPrinciple/bad-implementation'
 // import { BestPractice } from './LiskovSubstitutionPrinciple/best-practice'
 // import Post from "./InterfaceSegregationPrinciple/Original"
-import Post from "./InterfaceSegregationPrinciple/Corrected"
+// import Post from "./InterfaceSegregationPrinciple/Corrected"
+// import Todo from "./DependencyInversionPrinciple/Original"
+
+import Todo from "./DependencyInversionPrinciple/Corrected"
 
 
 
@@ -26,14 +29,17 @@ function App () {
             {/* <BestPractice /> */ }
 
             {/* Principio de segregación de interfaz */ }
-            <Post post={ {
+            {/* <Post post={ {
                 author: {
                     name: "Carlos Páez",
                     age: 21
                 },
                 title: "Prueba de Post",
                 createdAt: new Date()
-            } }></Post>
+            } } /> */}
+
+            {/* Principio de inversión de dependencias */ }
+            <Todo />
         </>
     )
 }
