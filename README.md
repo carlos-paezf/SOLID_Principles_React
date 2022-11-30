@@ -319,3 +319,115 @@ export const BestPractice = () => {
 }
 ```
 
+## Principio de Segregación de Interfaces
+
+Este principio dicta que, los clientes no deberían depender de interfaces que no necesitan. Llevando esto al contexto de React, sería como: los componentes no deberían de depender de props que no usan. En ocasiones enviamos un gran conjunto de propiedades, de las que solo usamos unas pocas, pero al momento de hacer alguna modificación en nuestro código, nos debemos asegurar que se sigue enviando todo ese conjunto de propiedades.
+
+Tenemos el siguiente ejemplo de componentes, en el cual observamos un post con algunos elementos internos. Lo importante a resaltar en este ejemplo, es la manera en qla que se están compartiendo en todos los componentes un objeto completo de tipo Post, para luego solo obtener una sola característica del mismo.
+
+```tsx
+import { FC } from "react"
+
+
+type PostType = {
+    title: string
+    author: {
+        name: string
+        age: number
+    }
+    createdAt: Date
+}
+
+type Props = {
+    post: PostType
+}
+
+type DateProps = {
+    post: PostType
+}
+
+
+const PostTitle: FC<Props> = ( { post } ) => {
+    return <h1>{ post.title }</h1>
+}
+
+
+const PostDate: FC<DateProps> = ( { post } ) => {
+    return <time>{ post.createdAt.toString() }</time>
+}
+
+
+const Post = ( { post }: { post: PostType } ) => {
+    return (
+        <div>
+            <PostTitle post={ post } />
+            <span>author: { post.author.name }</span>
+            <PostDate post={ post } />
+        </div >
+    )
+}
+
+
+export default Post
+```
+
+La manera en la que podemos aplicar el principio de segregación de interfaces, es simplificar las propiedades que se envían a los componentes, de esta manera nos aseguramos de que las propiedad sean claras al momento de modificar o añadir una nueva funcionalidad:
+
+```tsx
+import { FC } from "react"
+
+
+type PostType = {
+    title: string
+    author: {
+        name: string
+        age: number
+    }
+    createdAt: Date
+}
+
+type Props = {
+    title: string
+}
+
+type DateProps = {
+    createdAt: string
+}
+
+
+const PostTitle: FC<Props> = ( { title } ) => {
+    return <h1>{ title }</h1>
+}
+
+
+const PostDate: FC<DateProps> = ( { createdAt } ) => {
+    return <time>{ createdAt }</time>
+}
+
+
+const Post = ( { post }: { post: PostType } ) => {
+    return (
+        <div>
+            <PostTitle title={ post.title } />
+            <span>author: { post.author.name }</span>
+            <PostDate createdAt={ post.createdAt.toString() } />
+        </div >
+    )
+}
+
+
+export default Post
+```
+
+Es muy recomendable evitar pasar información de más de manera inconsciente como se muestra a continuación. Importante, siempre depende del contexto en que se aplique, por ejemplo, cuando necesitamos enviar 10 propiedades de un objeto de 15, esto es muy diferente a enviar 1 propiedad de un objeto de 15.
+
+```tsx
+const Post = ( { post }: { post: PostType } ) => {
+    return (
+        <div>
+            <PostTitle { ...post } />
+            ...
+        </div >
+    )
+}
+```
