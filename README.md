@@ -144,3 +144,84 @@ export const useFetchTodo = () => {
 ```
 
 Ahora bien, lo anterior lo podemos ir sacando en ficheros nuevos, lo que nos permite mantener un código más legible y tratable. [SingleResponsibilityPrinciple](./src/SingleResponsibilityPrinciple/).
+
+## Principio de Abierto-Cerrado
+
+Este principio dicta que las entidades de nuestro software deben estar abiertas para extensión, pero cerradas para modificación. En ocasiones necesitamos que alguna parte de nuestro software o algún componente ejecute algo diferente a lo que ha estado mostrando. En lugar de tocar dentro del componente, ya que podría generar errores en la lógica que ya estaba en funcionamiento, el ideal sería extender la funcionalidad del componente desde fuera del mismo.
+
+Tenemos el siguiente componente de ejemplo:
+
+```tsx
+import { FC } from 'react'
+
+
+type Props = {
+    title: string
+    type: 'default' | 'withLinkButton' | 'withNormalButton'
+    href?: string
+    buttonText?: string
+    onClick?: () => void
+}
+
+
+const Title: FC<Props> = ({
+    title,
+    type,
+    href,
+    buttonText,
+    onClick
+}) => {
+    return (
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <h1>{title}</h1>
+            {type === 'withLinkButton' && (
+                <button onClick={onClick}>
+                    <a href={href}>{buttonText}</a>
+                </button>
+            )}
+
+            {type === 'withLinkButton' && (
+                <button onClick={onClick}>{buttonText}</button>
+            )}
+        </div>
+    )
+}
+
+
+export default Title
+```
+
+¿Que pasaría si tenemos que añadir un nuevo tipo de botón? Pues, tenemos que hacer la condicional para renderizar el nuevo elemento, lo cual es una clara violación al principio de abierto-cerrado. Lo que vamos a hacer para solucionar este problema, es crear nuevos componentes y hacer uso de componentes hijos:
+
+```tsx
+import { FC } from 'react'
+import type { TitleProps, TitleWithButtonProps, TitleWithLinkProps } from './types/title-props'
+
+
+const Title: FC<TitleProps> = ({ title, children }) => {
+    return (
+        <div style={{ display: "flex", justifyContent: "space-around" }}>
+            <h1>{title}</h1>
+            {children}
+        </div>
+    )
+}
+
+
+export const TitleWithLink: FC<TitleWithLinkProps> = ({ title, href, buttonText }) => {
+    return <Title title={title}>
+        <div>
+            <a href={href}>{buttonText}</a>
+        </div>
+    </Title>
+}
+
+
+export const TitleWithButton: FC<TitleWithButtonProps> = ({ title, buttonText, onClick }) => {
+    return <Title title={title}>
+        <button onClick={onClick}>{buttonText}</button>
+    </Title>
+}
+```
+
+Ahora, cada que necesitamos un nuevo elemento dentro del titulo, solo debemos extender la funcionalidad del componente Title. Además tenemos la oportunidad de que las propiedades ya no son opcionales, por lo que también vamos a evitar errores tales como, no pasar la lógica del botón por que el componente no lo pidió.
