@@ -225,3 +225,97 @@ export const TitleWithButton: FC<TitleWithButtonProps> = ({ title, buttonText, o
 ```
 
 Ahora, cada que necesitamos un nuevo elemento dentro del titulo, solo debemos extender la funcionalidad del componente Title. Además tenemos la oportunidad de que las propiedades ya no son opcionales, por lo que también vamos a evitar errores tales como, no pasar la lógica del botón por que el componente no lo pidió.
+
+## Principio de Sustitución de Liskov
+
+Se puede definir básicamente como una relación entre objetos, en donde un subtipo de objetos debería ser sustituible por el supertipo de dichos objetos.
+
+Asumamos que tenemos un componente botón, en cual recibimos cómo props un color, un tamaño y un elemento hijo. Dependiendo del valor ingresado en el tamaño, se determina el tamaño de la letra.
+
+```tsx
+import { FC, ReactNode } from "react"
+
+
+type ButtonProps = {
+    children: ReactNode
+    color: string
+    size: 'xl' | 'm'
+}
+
+
+const Button: FC<ButtonProps> = ( { children, color, size } ) => {
+    return <button style={ { color, fontSize: size === 'xl' ? '32px' : '16px' } }>
+        { children }
+    </button>
+}
+```
+
+Ahora bien, hemos decidido crear un nuevo componente que se encargue de usar el botón que creamos, pero al momento de establecer las props del nuevo componente, decidimos no crear el tamaño, sino enviar una nueva propiedad que luego será evaluada y ajustará el tamaño del botón.
+
+```tsx
+type RedButtonProps = {
+    children: ReactNode
+    isBig: boolean
+}
+
+const RedButton: FC<RedButtonProps> = ( { children, isBig } ) => <Button size={ isBig ? 'xl' : 'm' } color="red">{ children }</Button>
+```
+
+Cuando decidimos usar el nuevo componente, debemos pasar su propiedad y con ello veremos en funcionamiento lo que hemos creado.
+
+```tsx
+export const BadImplementation = () => {
+    return <RedButton isBig={ true }>
+        Mala implementación
+    </RedButton>
+}
+```
+
+El problema surge cuando queremos usar el componente de botón original, y no el componente personalizado, si intentamos reemplazar el nombre del componente, obtendremos un error puesto que las props no coinciden.
+
+```tsx
+export const BadImplementation = () => {
+    return <Button isBig={ true }> //! La propiedad 'isBig' no existe en el tipo 'IntrinsicAttributes & ButtonProps'.
+        Mala implementación
+    </Button>
+}
+```
+
+La mejor práctica consiste en usar las mismas propiedades para el componente hijo, pero teniendo en cuenta que algunas propiedad serán opcionales:
+
+```tsx
+type ButtonProps = {
+    children: ReactNode
+    color?: string
+    size: 'xl' | 'm'
+}
+
+
+const Button: FC<ButtonProps> = ( { children, color, size } ) => {
+    return <button style={ { color, fontSize: size === 'xl' ? '32px' : '16px' } }>
+        { children }
+    </button>
+}
+
+
+const RedButton: FC<ButtonProps> = ( { children, size } ) => <Button size={ size } color="red">{ children }</Button>
+```
+
+De esta manera podremos usar el componente hijo, y si queremos, luego podemos reemplazarlo por el componente general o de supertipo:
+
+```tsx
+export const BestPractice = () => {
+    return <RedButton size="xl">
+        Mejor práctica
+    </RedButton>
+}
+```
+
+```tsx
+export const BestPractice = () => {
+    return <Button size="xl">
+        Mejor práctica
+    </Button>
+}
+```
+
